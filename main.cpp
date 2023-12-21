@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <math.h>
 
 using namespace std;
 
@@ -19,12 +20,12 @@ struct Vector3D {
         z /= m;
     }
 
-    void turnAlongZ(double theta) {
-        double newX = x*cos(theta)-y*sin(theta);
-        double newY = x*sin(theta)+y*cos(theta);
 
-        x = newX;
-        y = newY;
+    void setMagnitude(double a) {
+        double m = magnitude();
+        x = x*a/m;
+        y = y*a/m;
+        z = z*a/m;
     }
 
     Vector3D operator+(const Vector3D &other) const {
@@ -73,8 +74,8 @@ struct Camera {
 };
 
 const int MAXBOUNCES = 4;
-const int HEIGHT = 480;
-const int WIDTH = 640;
+const int HEIGHT = 8;
+const int WIDTH = 10;
 
 Vector3D crossProduct(const Vector3D &v1, const Vector3D &v2);
 void getRaysVectors(Camera camera, double distBetwenPixels);
@@ -85,7 +86,7 @@ void printRay(Ray r);
 int main() {
     cout << "hello world" << endl;
 
-    Camera m(1, 1, 1, 1, 10, 2);
+    Camera m(7, 3, 4, -2, 1, 0.5);
     vector<Sphere> spheres;
     spheres.push_back(Sphere(10, -2, 0, 1, Color(1, 0, 0)));
     spheres.push_back(Sphere(9, -4, 2, .5, Color(1, 0, 0)));
@@ -99,7 +100,7 @@ int main() {
     // cout << endl;
     // cout << endl;
 
-    getRaysVectors(m, 1);
+    getRaysVectors(m, .1);
 
     return 0;
 }
@@ -107,28 +108,26 @@ int main() {
 void getRaysVectors(Camera camera, double distBetweenPixels) {
 
     Ray middleRay = Ray(camera.pos, camera.dir);
+    Vector3D rightVector = Vector3D(camera.dir.y, -camera.dir.x, 0);
+    Vector3D upVector = Vector3D(middleRay.dir.y*rightVector.z-middleRay.dir.z*rightVector.y, middleRay.dir.z*rightVector.x-middleRay.dir.x*rightVector.z, middleRay.dir.x*rightVector.y-middleRay.dir.y*rightVector.x);
+    rightVector.setMagnitude(distBetweenPixels);
+    upVector.setMagnitude(distBetweenPixels);
 
-    // create vector that has 90° angle to middleRay and goes to the right
-    Vector3D upVector = crossProduct(middleRay.dir, Vector3D(0, distBetweenPixels, 0));
-    upVector.normalize();
-    upVector *= distBetweenPixels;
-    Ray upRay(middleRay.pos + middleRay.dir, upVector);
+    double theta = 5./180*M_PI;
 
-    // create vector that has 90° angle to middleRay and goes up
-    Vector3D rightVector = crossProduct(middleRay.dir, Vector3D(0, 0, distBetweenPixels));
-    rightVector.normalize();
-    rightVector *= distBetweenPixels;
-    Ray rightRay(middleRay.pos + middleRay.dir, rightVector);
-
-    printRay(middleRay);
-    printRay(upRay);
-    printRay(rightRay);
+    // print middle ray
+    // printRay(Ray(middleRay.pos, middleRay.dir*2));
 
     // loop through each pixel
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
             // calc new vector which goes from camera in the direction of the pixel on the "screen"
-            Ray currRay = middleRay + rightVector * (x - WIDTH / 2) + upVector * (y - HEIGHT / 2);
+
+            int actualX = x-WIDTH/2;
+            int actualY = y-HEIGHT/2;
+
+            printRay(Ray(middleRay.pos, middleRay.dir+rightVector*actualX+upVector*actualY));
+            
             // colors[y][x] = calcColor(currRay);
         }
     }
